@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Update Wishlist</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="css/site.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet" />
+  <script src="https://kit.fontawesome.com/3c6e6d7c17.js" crossorigin="anonymous"></script>
+  <style>
+    :root{ --bg:#000; --accent:#ff000086; --text:#fff; }
+    body{margin:0;background:var(--bg);color:var(--text);font-family:"Bungee",Arial,sans-serif;}
+    .wrap{max-width:1000px;margin:24px auto;padding:0 22px;}
+    table{width:100%;border-collapse:collapse;background:#0f0f0f;border:1px solid #222;border-radius:12px;overflow:hidden}
+    th,td{padding:12px;border-bottom:1px solid #222;text-align:left;font-size:14px}
+    th{background:#121212}
+    input,select,button{background:#121212;color:#fff;border:1px solid #222;border-radius:10px;padding:8px 10px;font-family:inherit}
+    button{background:var(--accent);border:none;font-weight:700;cursor:pointer}
+    button:hover{box-shadow:0 0 12px var(--accent)}
+    .filters{margin-bottom:12px; display:flex; gap:8px; flex-wrap:wrap;}
+
+    /* --- NAV hover hardening (ensures hover wins on this page) --- */
+    .nav a{
+      display:inline-flex; align-items:center; border-radius:10px;
+      transition:transform .15s ease, box-shadow .15s ease, background .2s;
+    }
+    
+    .nav a.active{
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent) inset, 0 0 8px var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <!-- auth guard -->
+  <script> if (!localStorage.getItem('loggedIn')) { window.location.replace('login.html'); } </script>
+
+  <!-- Shared navbar -->
+  <nav id="app-nav"></nav>
+  <script src="js/nav.js" defer></script>
+
+  <div class="wrap">
+    <h1 style="margin-top:0">Update Wishlist</h1>
+    <div class="filters">
+      <input id="q" placeholder="Search title..." />
+      <select id="type">
+        <option value="">All Types</option>
+        <option value="anime">Anime</option>
+        <option value="manhwa">Manhwa</option>
+        <option value="manhua">Manhua</option>
+        <option value="manga">Manga</option>
+        <option value="movie">Movie</option>
+      </select>
+      <button id="searchBtn">Search</button>
+    </div>
+
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th style="width:32px">#</th>
+          <th>Title</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Last Chapter</th>
+          <th style="width:120px">Action</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const rows = document.getElementById('rows');
+    const q    = document.getElementById('q');
+    const type = document.getElementById('type');
+    const btn  = document.getElementById('searchBtn');
+
+    async function load(){
+      const params = new URLSearchParams();
+      if(q.value.trim()) params.set('q', q.value.trim());
+      if(type.value) params.set('type', type.value);
+      const res = await fetch(`api/get_wishlist.php?${params.toString()}`);
+      const items = await res.json();
+      render(items);
+    }
+
+    function render(items){
+      rows.innerHTML = "";
+      items.forEach((it, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i+1}</td>
+          <td>${it.title}</td>
+          <td>${(it.type||'').toUpperCase()}</td>
+          <td>
+            <select data-id="${it.id}" class="status">
+              ${['completed','ongoing','reading','hiatus'].map(s => `<option value="${s}" ${it.status===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+          </td>
+          <td><input data-id="${it.id}" class="last" placeholder="e.g. 123" value="${it.last_chapter||''}"></td>
+          <td><button data-id="${it.id}" class="save">Save</button></td>
+        `;
+        rows.appendChild(tr);
+      });
+
+      document.querySelectorAll('.save').forEach(btn=>{
+        btn.addEventListener('click', async (e)=>{
+          const id = e.currentTarget.getAttribute('data-id');
+          const s  = document.querySelector(`select.status[data-id="${id}"]`).value;
+          const l  = document.querySelector(`input.last[data-id="${id}"]`).value.trim();
+          const form = new FormData();
+          form.set('id', id);
+          form.set('status', s);
+          form.set('last_chapter', l);
+          const res = await fetch('api/update_wishlist.php', { method:'POST', body: form });
+          const json = await res.json();
+          if(json.success){ e.currentTarget.textContent = 'Saved!'; setTimeout(()=>e.currentTarget.textContent='Save',900); }
+          else { alert(json.error || 'Failed'); }
+        });
+      });
+    }
+
+    btn.addEventListener('click', load);
+    q.addEventListener('keydown', (e)=>{ if(e.key==='Enter') load(); });
+    type.addEventListener('change', load);
+    load();
+  </script>
+</body>
+</html>

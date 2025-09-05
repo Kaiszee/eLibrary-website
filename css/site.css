@@ -1,0 +1,41 @@
+/* css/site.css */
+:root{
+  --bg:#000000; --accent:#ff000086; --text:#f5f5f5;
+}
+
+*{ box-sizing:border-box }
+body{ margin:0; background:var(--bg); color:var(--text); font-family:"Bungee", Arial, sans-serif; }
+
+/* NAVBAR (same as Home) */
+.nav{
+  position:sticky; top:0; z-index:10;
+  background: linear-gradient(90deg, var(--bg), var(--accent), var(--bg));
+  padding:14px 22px; display:flex; align-items:center; gap:20px;
+  border-bottom:1px solid rgba(255,0,0,0.25); backdrop-filter: blur(6px);
+  overflow-x:auto; /* never clip on small screens */
+}
+.brand{display:flex; align-items:center; gap:12px; font-weight:700;}
+.logo-dot{width:22px;height:22px;border-radius:50%;background:#fff; box-shadow:0 0 10px #fff;}
+.nav a{
+  color:#fff; text-decoration:none; padding:8px 12px; border-radius:10px;
+  transition:transform .15s ease, box-shadow .15s ease, background .2s; white-space:nowrap;
+}
+.nav a:hover{ background:var(--accent); box-shadow:0 0 14px var(--accent); transform:translateY(-1px); }
+.nav .spacer{flex:1}
+.nav a.active{ background:var(--accent); box-shadow:0 0 10px var(--accent) inset, 0 0 8px var(--accent); }
+
+/* Logout button (anchor version) */
+.icon-btn{
+  display:inline-flex; align-items:center; gap:8px; justify-content:center;
+  padding:0 12px; height:40px; margin-left:8px;
+  border-radius:12px; background:#1f1f1f; border:1px solid rgba(255,255,255,.15);
+  cursor:pointer; text-decoration:none; white-space:nowrap;
+  transition:transform .15s ease, box-shadow .15s ease, background .2s, border-color .2s;
+}
+.icon-btn i{ font-size:18px; color:#fff; line-height:1; }
+.icon-btn .label{ color:#fff; font-size:14px; }
+.icon-btn:hover{ background: var(--accent); border-color:transparent; box-shadow:0 0 14px var(--accent); transform:translateY(-1px); }
+
+@media (max-width:640px){
+  .icon-btn .label{ display:none; } /* icon only on small screens */
+}

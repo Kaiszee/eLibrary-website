@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>E-Library Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="css/site.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet" />
+  <script src="https://kit.fontawesome.com/3c6e6d7c17.js" crossorigin="anonymous"></script>
+  <style>
+    :root{
+      --bg:#000000; --accent:#ff000086; --card:#111; --text:#f5f5f5; --muted:#bbbbbb; --chip:#1a1a1a;
+    }
+    .flag{ width:16px; height:12px; display:inline-block; border-radius:2px; object-fit:cover; }
+    .links{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+    *{box-sizing:border-box}
+    body{ margin:0; background:var(--bg); color:var(--text); font-family:"Bungee", Arial, sans-serif; min-height:100vh; display:flex; flex-direction:column; }
+
+    /* SEARCH */
+    .toolbar{ display:flex; gap:10px; padding:16px 22px; align-items:center; flex-wrap:wrap; background:#0a0a0a; border-bottom:1px solid rgba(255,0,0,0.2); }
+    .search{ flex:1; min-width:220px; display:flex; align-items:center; gap:8px; background:#0f0f0f; border:1px solid #222; border-radius:12px; padding:10px 12px; }
+    .search input{ flex:1; border:none; outline:none; background:transparent; color:#fff; font-size:14px; }
+    .filter{ display:flex; gap:10px; align-items:center; }
+    .select, .btn{ background:#121212; color:#fff; border:1px solid #222; border-radius:12px; padding:10px 12px; cursor:pointer; }
+    .btn{ background:var(--accent); border:none; font-weight:700; }
+    .btn:hover{ box-shadow:0 0 14px var(--accent); }
+
+    /* GALLERY */
+    .wrap{ padding:22px; }
+    .grid{ display:grid; gap:18px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+    .card{ background:var(--card); border:1px solid #1b1b1b; border-radius:16px; overflow:hidden;
+           box-shadow:0 6px 16px rgba(0,0,0,0.35); position:relative; transition:transform .15s ease, box-shadow .2s; }
+    .card:hover{ transform:translateY(-2px); box-shadow:0 10px 20px rgba(255,0,0,0.15); }
+    .thumb{ width:100%; aspect-ratio:3/4; object-fit:cover; display:block; background:#0d0d0d; }
+    .content{ padding:12px; }
+    .title{ font-size:16px; line-height:1.2; margin:0 0 6px; }
+    .meta{ color:var(--muted); font-size:12px; margin-bottom:8px; display:flex; gap:8px; flex-wrap:wrap; }
+    .chip{ background:#1a1a1a; padding:4px 8px; border-radius:999px; border:1px solid #222; font-size:11px; }
+    .row{ display:flex; gap:10px; align-items:center; }
+    .link, .preview{ text-decoration:none; font-size:12px; padding:8px 10px; border-radius:10px; border:1px solid #222;
+                     display:inline-flex; align-items:center; gap:6px; color:#fff; background:#141414; }
+    .link:hover, .preview:hover{ border-color:var(--accent); box-shadow:0 0 10px var(--accent); }
+    .icon{ width:16px; height:16px; display:inline-block; }
+    .empty{ opacity:.7; text-align:center; padding:40px; border:1px dashed #333; border-radius:16px; margin-top:20px; }
+
+    /* FAB */
+    .fab{ position:fixed; right:22px; bottom:22px; width:56px; height:56px; border-radius:50%;
+          background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center;
+          font-size:28px; font-weight:900; cursor:pointer; box-shadow:0 10px 20px rgba(255,0,0,0.25); border: none; }
+    .fab:hover{ box-shadow:0 0 16px var(--accent); transform:translateY(-1px); }
+  </style>
+</head>
+<body>
+  <!-- auth guard -->
+  <script> if (!localStorage.getItem('loggedIn')) { window.location.replace('login.html'); } </script>
+
+  <!-- Shared navbar -->
+  <nav id="app-nav"></nav>
+  <script src="js/nav.js" defer></script>
+
+  <!-- SEARCH / FILTER -->
+  <section class="toolbar">
+    <div class="search">
+      <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M10 2a8 8 0 015.292 13.707l4.5 4.5-1.414 1.414-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"/></svg>
+      <input id="q" type="text" placeholder="Search title or genre..." />
+    </div>
+    <div class="filter">
+      <select id="type" class="select">
+        <option value="">All Types</option>
+        <option value="anime">Anime</option>
+        <option value="manhwa">Manhwa</option>
+        <option value="manhua">Manhua</option>
+        <option value="manga">Manga</option>
+        <option value="movie">Movie</option>
+      </select>
+      <select id="status" class="select">
+        <option value="">All Status</option>
+        <option value="completed">Completed</option>
+        <option value="ongoing">Ongoing</option>
+        <option value="reading">Reading</option>
+        <option value="hiatus">Hiatus</option>
+      </select>
+      <button id="searchBtn" class="btn">Search</button>
+    </div>
+  </section>
+
+  <!-- GALLERY -->
+  <main class="wrap">
+    <div id="grid" class="grid"></div>
+    <div id="empty" class="empty" style="display:none;">No results. Try changing filters or adding items.</div>
+  </main>
+
+  <!-- Floating Add button -->
+  <button class="fab" title="Add Wishlist" onclick="location.href='add.html'">+</button>
+
+  <!-- Page logic -->
+  <script>
+    function langMeta(code){
+      switch((code||'').toLowerCase()){
+        case 'id':  return { name: 'Indonesian', icon: 'assets/flags/id.png' };
+        case 'kr':  return { name: 'Korean',     icon: 'assets/flags/kr.png' };
+        case 'my':  return { name: 'Malay',      icon: 'assets/flags/my.png' };
+        default:    return { name: 'English',    icon: 'assets/flags/gb.png' };
+      }
+    }
+
+    const grid   = document.getElementById('grid');
+    const empty  = document.getElementById('empty');
+    const q      = document.getElementById('q');
+    const type   = document.getElementById('type');
+    const statusSel = document.getElementById('status');
+    const btn    = document.getElementById('searchBtn');
+
+    function youtubeIcon(){
+      return `<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3.03 3.03 0 00-2.13-2.14C19.55 3.5 12 3.5 12 3.5s-7.55 0-9.37.56A3.03 3.03 0 00.5 6.2 31.77 31.77 0 000 12a31.77 31.77 0 00.5 5.8 3.03 3.03 0 002.13 2.14C4.45 20.5 12 20.5 12 20.5s7.55 0 9.37-.56a3.03 3.03 0 002.13-2.14c.35-1.9.5-3.8.5-5.8s-.15-3.9-.5-5.8zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/></svg>`;
+    }
+    function tiktokIcon(){
+      return `<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 6.2a5.7 5.7 0 01-2.7-4.2h-2.7v13.1a3.5 3.5 0 11-3-3.46V9.1a6.2 6.2 0 00-1.1-.1A6.5 6.5 0 106 22.9a6.5 6.5 0 006.1-6.48V8.1a8.4 8.4 0 004.6 1.42V6.2z"/></svg>`;
+    }
+
+    async function load(){
+      const params = new URLSearchParams();
+      const query = q.value.trim();
+      if (query) params.set('q', query);
+      if (type && type.value) params.set('type', type.value);
+      if (statusSel && statusSel.value) params.set('status', statusSel.value);
+
+      const res = await fetch(`api/get_wishlist.php?${params.toString()}`);
+      const items = await res.json();
+      render(items);
+    }
+
+    function render(items){
+      grid.innerHTML = "";
+      if (!items || items.length === 0){ empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+
+      items.forEach(it => {
+        const imgSrc = it.cover_path ? it.cover_path : (it.cover_url || 'https://via.placeholder.com/400x533?text=No+Image');
+        const status = (it.status || '').toUpperCase();
+        const last   = it.last_chapter ? `Ch. ${it.last_chapter}` : '';
+
+        let linksHtml = '';
+        if (Array.isArray(it.sources) && it.sources.length){
+          linksHtml = `<div class="links">` + it.sources.map(s => {
+            const meta = langMeta(s.lang);
+            let label = '';
+            try { label = (s.label && s.label.trim()) ? s.label : new URL(s.url).hostname.replace(/^www\./,''); }
+            catch(e) { label = s.label || s.url; }
+            return `
+              <a class="link" href="${s.url}" target="_blank" rel="noopener">
+                <img class="flag" src="${meta.icon}" alt="${meta.name} flag"> ${meta.name} — ${label}
+              </a>
+            `;
+          }).join('') + `</div>`;
+        }
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <img class="thumb" src="${imgSrc}" alt="${it.title || ''}" onerror="this.src='https://via.placeholder.com/400x533?text=No+Image'">
+          <div class="content">
+            <h3 class="title">${it.title || ''}</h3>
+            <div class="meta">
+              <span class="chip">${(it.type||'').toUpperCase()}</span>
+              ${it.genre ? `<span class="chip">${it.genre}</span>` : ``}
+              ${status ? `<span class="chip">${status}</span>` : ``}
+              ${last ? `<span class="chip">${last}</span>` : ``}
+            </div>
+            ${linksHtml}
+            <div class="row" style="margin-top:8px">
+              ${it.site_url ? `<a class="link" href="${it.site_url}" target="_blank" rel="noopener">Open Site</a>` : ``}
+              ${it.preview_url ? `
+                <a class="preview" href="${it.preview_url}" target="_blank" rel="noopener">
+                  ${(it.preview_source === 'tiktok') ? tiktokIcon() : youtubeIcon()} Preview
+                </a>` : ``}
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    if (btn) btn.addEventListener('click', load);
+    if (q) q.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') load(); });
+    if (type) type.addEventListener('change', load);
+    if (statusSel) statusSel.addEventListener('change', load);
+
+    load();
+  </script>
+</body>
+</html>

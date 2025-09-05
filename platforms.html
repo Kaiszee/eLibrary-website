@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Platforms</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="css/site.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet" />
+  <script src="https://kit.fontawesome.com/3c6e6d7c17.js" crossorigin="anonymous"></script>
+  <style>
+    :root{ --bg:#000; --accent:#ff000086; --card:#111; --text:#fff; }
+    body{margin:0;background:var(--bg);color:var(--text);font-family:"Bungee",Arial,sans-serif;min-height:100vh}
+    .wrap{padding:22px;max-width:1100px;margin:0 auto}
+    .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+    .card{background:#111;border:1px solid #222;border-radius:14px;padding:14px;text-align:center}
+    .icon{width:80px;height:80px;border-radius:16px;object-fit:cover;background:#0f0f0f;display:block;margin:6px auto 10px}
+    .fab{ position:fixed; right:22px; bottom:22px; width:56px; height:56px; border-radius:50%;
+          background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center;
+          font-size:28px; font-weight:900; cursor:pointer; border:none; box-shadow:0 10px 20px rgba(255,0,0,0.25); }
+    .fab:hover{ box-shadow:0 0 16px var(--accent); transform:translateY(-1px); }
+  </style>
+</head>
+<body>
+  <!-- auth guard -->
+  <script> if (!localStorage.getItem('loggedIn')) { window.location.replace('login.html'); } </script>
+
+  <!-- Shared navbar -->
+  <nav id="app-nav"></nav>
+  <script src="js/nav.js" defer></script>
+
+  <div class="wrap">
+    <h1 id="title" style="margin-top:0">Platforms</h1>
+    <div id="grid" class="grid"></div>
+  </div>
+  <button class="fab" id="fab">+</button>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const type = (params.get('type') === 'webtoon') ? 'webtoon' : 'streaming';
+    document.getElementById('title').textContent = type === 'streaming' ? 'Streaming Platforms' : 'Webtoon Platforms';
+    document.getElementById('fab').onclick = () => { location.href = `add_platform.html?type=${type}`; };
+
+    async function load(){
+      const res = await fetch(`api/get_platforms.php?type=${type}`);
+      const items = await res.json();
+      const grid = document.getElementById('grid');
+      grid.innerHTML = "";
+      items.forEach(p=>{
+        const card = document.createElement('a');
+        card.href = p.url; card.target="_blank"; card.rel="noopener";
+        card.className = 'card';
+        card.innerHTML = `
+          <img class="icon" src="${p.icon_path || 'https://via.placeholder.com/160?text=Icon'}" alt="${p.name}">
+          <div>${p.name}</div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+    load();
+  </script>
+</body>
+</html>

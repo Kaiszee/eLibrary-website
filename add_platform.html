@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Add Platform</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="css/site.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet" />
+  <script src="https://kit.fontawesome.com/3c6e6d7c17.js" crossorigin="anonymous"></script>
+  <style>
+    :root{ --bg:#000000; --text:#ffffff; --accent:#ff000086; }
+    body{ margin:0; background:var(--bg); color:var(--text); font-family:"Bungee",Arial,sans-serif; min-height:100vh; display:flex; flex-direction:column }
+
+    .wrap{max-width:720px;margin:24px auto;padding:0 22px}
+    form{display:grid;grid-template-columns:1fr 1fr;gap:14px;background:#0f0f0f;border:1px solid #222;padding:18px;border-radius:14px}
+    label{font-size:12px;color:#bbb}
+    input,select{width:100%;padding:10px;border-radius:10px;border:1px solid #222;background:#121212;color:#fff;outline:none}
+    .row-2{grid-column:span 2}
+    .btn{background:var(--accent);border:none;color:#fff;padding:12px;border-radius:12px;cursor:pointer;font-weight:700}
+    .btn:hover{box-shadow:0 0 12px var(--accent)}
+    .msg{margin-top:12px;font-size:14px}
+  </style>
+</head>
+<body>
+  <!-- auth guard -->
+  <script> if (!localStorage.getItem('loggedIn')) { window.location.replace('login.html'); } </script>
+
+  <!-- Shared navbar -->
+  <nav id="app-nav"></nav>
+  <script src="js/nav.js" defer></script>
+
+  <div class="wrap">
+    <h1 id="title" style="margin-top:0">Add Platform</h1>
+
+    <form id="f" enctype="multipart/form-data">
+      <input type="hidden" name="type" id="type">
+      <div class="row-2">
+        <label>Name</label>
+        <input name="name" required>
+      </div>
+      <div class="row-2">
+        <label>URL</label>
+        <input name="url" placeholder="https://..." required>
+      </div>
+      <div class="row-2">
+        <label>Icon (upload)</label>
+        <input type="file" name="icon_file" accept="image/*" required>
+      </div>
+      <div class="row-2" style="display:flex;gap:12px;align-items:center">
+        <button class="btn" type="submit" id="saveBtn">Save</button>
+        <div id="msg" class="msg"></div>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const p = new URLSearchParams(location.search);
+    const t = (p.get('type') === 'webtoon') ? 'webtoon' : 'streaming';
+    document.getElementById('type').value = t;
+    document.getElementById('title').textContent = t === 'webtoon' ? 'Add Webtoon Platform' : 'Add Streaming Platform';
+
+    const f = document.getElementById('f');
+    const msg = document.getElementById('msg');
+    const saveBtn = document.getElementById('saveBtn');
+
+    function setMsg(text, ok=false){ msg.textContent = text; msg.style.color = ok ? '#8fff8f' : '#ffb0b0'; }
+
+    f.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      if (!f.name.value.trim()){ setMsg('Name is required'); return; }
+      if (!f.url.value.trim()){ setMsg('URL is required'); return; }
+      if (!f.icon_file.files.length){ setMsg('Please choose an icon image'); return; }
+
+      saveBtn.disabled = true; setMsg('Saving...');
+      try{
+        const data = new FormData(f);
+        const res = await fetch('api/add_platform.php', { method:'POST', body:data, headers:{'Accept':'application/json'} });
+        const raw = await res.text();
+        let json; try { json = JSON.parse(raw); } catch { throw new Error('Server returned an unexpected response. Check PHP errors/logs.'); }
+        if (!res.ok || json.success === false || json.error) throw new Error(json.error || 'Failed to save.');
+        setMsg('Saved! Redirecting...', true);
+        setTimeout(()=>{ location.href = `platforms.html?type=${t}`; }, 800);
+      }catch(err){ setMsg(err.message || 'Something went wrong.'); }
+      finally{ saveBtn.disabled = false; }
+    });
+  </script>
+</body>
+</html>

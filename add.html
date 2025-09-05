@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Add to Wishlist</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="css/site.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet" />
+  <script src="https://kit.fontawesome.com/3c6e6d7c17.js" crossorigin="anonymous"></script>
+  <style>
+    :root{ --bg:#000; --accent:#ff000086; --text:#fff; }
+    body{ margin:0; background:var(--bg); color:var(--text); font-family:"Bungee",Arial,sans-serif; min-height:100vh; }
+    .wrap{max-width:780px;margin:30px auto;padding:0 22px;}
+    h1{margin-top:0}
+    form{display:grid;grid-template-columns:1fr 1fr;gap:14px;background:#0f0f0f;border:1px solid #222;padding:18px;border-radius:14px;}
+    label{font-size:12px;color:#bbb}
+    input,select{width:100%;padding:10px;border-radius:10px;border:1px solid #222;background:#121212;color:#fff;outline:none;}
+    .row-2{grid-column:span 2}
+    .btn{background:var(--accent);border:none;color:#fff;padding:12px;border-radius:12px;cursor:pointer;font-weight:700}
+    .btn:hover{box-shadow:0 0 12px var(--accent)}
+    .msg{margin-top:12px;font-size:14px}
+    .links-head{grid-column:span 2;margin-top:8px;font-size:14px;color:#ddd}
+    .link-row{display:grid;grid-template-columns:1fr 1fr 120px 80px;gap:10px;align-items:center;background:#101010;border:1px solid #222;padding:10px;border-radius:12px}
+    .link-actions{display:flex;gap:8px;justify-content:flex-end}
+    .subtle{background:#141414;border:1px solid #222}
+  </style>
+</head>
+<body>
+  <!-- auth guard -->
+  <script> if (!localStorage.getItem('loggedIn')) { window.location.replace('login.html'); } </script>
+
+  <!-- Shared navbar -->
+  <nav id="app-nav"></nav>
+  <script src="js/nav.js" defer></script>
+
+  <div class="wrap">
+    <h1>Add Wishlist Item</h1>
+
+    <form id="f" enctype="multipart/form-data">
+      <div>
+        <label>Title</label>
+        <input name="title" required>
+      </div>
+      <div>
+        <label>Type</label>
+        <select name="type" required>
+          <option value="anime">Anime</option>
+          <option value="manhwa">Manhwa</option>
+          <option value="manhua">Manhua</option>
+          <option value="manga">Manga</option>
+          <option value="movie">Movie</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Genre</label>
+        <input name="genre" placeholder="e.g. Action, Romance">
+      </div>
+      <div>
+        <label>Status / Tag</label>
+        <select name="status" required>
+          <option value="reading">Reading</option>
+          <option value="ongoing">Ongoing</option>
+          <option value="completed">Completed</option>
+          <option value="hiatus">Hiatus</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Streaming/Webtoon Site URL (single)</label>
+        <input name="site_url" placeholder="(Optional legacy) https://...">
+      </div>
+      <div>
+        <label>Preview Source</label>
+        <select name="preview_source">
+          <option value="">Auto/None</option>
+          <option value="youtube">YouTube</option>
+          <option value="tiktok">TikTok</option>
+        </select>
+      </div>
+
+      <div class="row-2">
+        <label>Cover Image (upload)</label>
+        <input type="file" name="cover_file" accept="image/*" required>
+      </div>
+
+      <div class="row-2">
+        <label>Preview/Trailer URL</label>
+        <input name="preview_url" placeholder="YouTube/TikTok link">
+      </div>
+
+      <!-- MULTI LINKS -->
+      <div class="links-head">Streaming/Webtoon Links (multiple)</div>
+      <div class="row-2">
+        <div id="links"></div>
+        <div class="link-actions">
+          <button class="btn subtle" type="button" id="addLinkBtn">+ Add Link</button>
+        </div>
+      </div>
+
+      <div class="row-2">
+        <button class="btn" type="submit">Save</button>
+        <div id="msg" class="msg"></div>
+      </div>
+    </form>
+  </div>
+
+  <template id="linkRowTpl">
+    <div class="link-row">
+      <input name="source_label[]" placeholder="Label (e.g. Netflix/Muse/Webtoon)">
+      <input name="source_url[]" placeholder="https://..." required>
+      <select name="source_lang[]">
+        <option value="eng">English</option>
+        <option value="id">Indonesian</option>
+        <option value="kr">Korean</option>
+        <option value="my">Malay</option>
+      </select>
+      <button type="button" class="btn subtle remove">Remove</button>
+    </div>
+  </template>
+
+  <script>
+    // dynamic multi-links
+    const linksWrap = document.getElementById('links');
+    const tpl = document.getElementById('linkRowTpl');
+    document.getElementById('addLinkBtn').addEventListener('click', () => {
+      linksWrap.appendChild(tpl.content.firstElementChild.cloneNode(true));
+      wireRemovers();
+    });
+    function wireRemovers(){
+      linksWrap.querySelectorAll('.remove').forEach(b=>{
+        b.onclick = (e)=> e.currentTarget.closest('.link-row').remove();
+      });
+    }
+    wireRemovers();
+  </script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('f');
+      const msg  = document.getElementById('msg');
+      const submitBtn = form.querySelector('button[type="submit"]');
+
+      function showMsg(text, ok=false){ msg.textContent = text; msg.style.color = ok ? '#8fff8f' : '#ff8f8f'; }
+      function autoSource(url){
+        if(/tiktok\.com/i.test(url)) return 'tiktok';
+        if(/youtu\.be|youtube\.com/i.test(url)) return 'youtube';
+        return '';
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if(!form.title.value.trim()){ showMsg('Title is required.'); return; }
+        if(!form.type.value){ showMsg('Type is required.'); return; }
+        if(!form.cover_file.files.length){ showMsg('Please choose a cover image.'); return; }
+        if(!form.preview_source.value){ form.preview_source.value = autoSource(form.preview_url.value || ''); }
+
+        submitBtn.disabled = true; showMsg('Saving...');
+        try{
+          const data = new FormData(form);
+          const res = await fetch('./api/add_wishlist.php', { method: 'POST', body: data, headers: { 'Accept': 'application/json' } });
+          const raw = await res.text();
+          let json; try { json = JSON.parse(raw); } catch { throw new Error('Server returned an unexpected response. Check PHP errors/logs.'); }
+          if(!res.ok || json.error || json.success === false){ throw new Error(json.error || 'Failed to save.'); }
+          showMsg('Saved! Redirecting to Home...', true);
+          setTimeout(() => { window.location.href = 'home.html'; }, 800);
+        }catch(err){ showMsg(err.message || 'Something went wrong.'); }
+        finally{ submitBtn.disabled = false; }
+      });
+    });
+  </script>
+</body>
+</html>
